@@ -4,11 +4,20 @@ const googleApis = require('../config/google-apis');
 
 router.get('/google', (req, res) => {
   try {
+    console.log('OAuth 초기화 시도 중...');
+    console.log('환경:', {
+      NODE_ENV: process.env.NODE_ENV,
+      VERCEL_URL: process.env.VERCEL_URL,
+      hasClientId: !!process.env.GOOGLE_CLIENT_ID,
+      hasClientSecret: !!process.env.GOOGLE_CLIENT_SECRET
+    });
+    
     const authUrl = googleApis.getAuthUrl();
+    console.log('생성된 Auth URL:', authUrl);
     res.redirect(authUrl);
   } catch (error) {
     console.error('인증 URL 생성 실패:', error);
-    res.status(500).json({ error: '인증 URL 생성에 실패했습니다.' });
+    res.status(500).json({ error: '인증 URL 생성에 실패했습니다.', details: error.message });
   }
 });
 

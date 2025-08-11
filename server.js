@@ -40,7 +40,9 @@ app.use(session({
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000,
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-  }
+  },
+  // Vercel의 서버리스 환경에서 세션 처리 개선
+  name: 'sessionId'
 }));
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -55,7 +57,19 @@ app.get('/api/status', (req, res) => {
   res.json({
     status: 'running',
     authenticated: !!req.session.tokens,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    environment: {
+      NODE_ENV: process.env.NODE_ENV,
+      hasClientId: !!process.env.GOOGLE_CLIENT_ID,
+      hasClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
+      hasSessionSecret: !!process.env.SESSION_SECRET,
+      vercelUrl: process.env.VERCEL_URL || 'not set'
+    },
+    session: {
+      exists: !!req.session,
+      hasTokens: !!req.session?.tokens,
+      authenticated: !!req.session?.authenticated
+    }
   });
 });
 
@@ -67,11 +81,23 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`서버가 http://localhost:${PORT} 에서 실행 중입니다.`);
+// Vercel에서는 app.listen을 사용하지 않음
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`서버가 http://localhost:${PORT} 에서 실행 중입니다.`);
+    console.log('환경 설정:');
+    console.log('- OAuth 설정:', process.env.GOOGLE_CLIENT_ID ? '✓' : '✗');
+    console.log('- Service Account:', process.env.GOOGLE_APPLICATION_CREDENTIALS ? '✓' : '✗');
+    console.log('- Session Secret:', process.env.SESSION_SECRET ? '✓' : '✗');
+    console.log('\n인증 URL: http://localhost:' + PORT + '/api/auth/google');
+  });
+} else {
+  console.log('프로덕션 환경에서 실행 중');
   console.log('환경 설정:');
   console.log('- OAuth 설정:', process.env.GOOGLE_CLIENT_ID ? '✓' : '✗');
   console.log('- Service Account:', process.env.GOOGLE_APPLICATION_CREDENTIALS ? '✓' : '✗');
   console.log('- Session Secret:', process.env.SESSION_SECRET ? '✓' : '✗');
-  console.log('\n인증 URL: http://localhost:' + PORT + '/api/auth/google');
-});
+}
+
+// Vercel을 위한 module.exports 추가
+module.exports = app;

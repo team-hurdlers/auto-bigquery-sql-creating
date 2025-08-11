@@ -10,8 +10,26 @@ class GoogleApisConfig {
 
   initializeOAuth() {
     if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-      const redirectUri = process.env.GOOGLE_REDIRECT_URI || 
-        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}/api/auth/callback` : 'http://localhost:3000/api/auth/callback');
+      // 동적 리디렉션 URI 설정
+      let redirectUri;
+      
+      if (process.env.GOOGLE_REDIRECT_URI) {
+        // 환경변수에 명시적으로 설정된 경우
+        redirectUri = process.env.GOOGLE_REDIRECT_URI;
+      } else if (process.env.NODE_ENV === 'production') {
+        // 프로덕션 환경에서 동적 생성
+        if (process.env.VERCEL_URL) {
+          redirectUri = `https://${process.env.VERCEL_URL}/api/auth/callback`;
+        } else {
+          // Vercel 자동 배포 URL 처리
+          redirectUri = 'https://auto-bigquery-sql-creating.vercel.app/api/auth/callback';
+        }
+      } else {
+        // 개발 환경
+        redirectUri = 'http://localhost:3000/api/auth/callback';
+      }
+      
+      console.log('OAuth 리디렉션 URI:', redirectUri);
       
       this.oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
