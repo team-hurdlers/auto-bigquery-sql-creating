@@ -20,11 +20,22 @@ router.get('/callback', async (req, res) => {
   }
 
   try {
+    console.log('토큰 교환 시작, 코드:', code.substring(0, 20) + '...');
     const tokens = await googleApis.getTokenFromCode(code);
+    console.log('토큰 교환 성공');
+    
     req.session.tokens = tokens;
     req.session.authenticated = true;
     
-    res.redirect('/');
+    // 세션 저장 강제
+    req.session.save((err) => {
+      if (err) {
+        console.error('세션 저장 실패:', err);
+        return res.status(500).json({ error: '세션 저장 실패' });
+      }
+      console.log('세션 저장 성공');
+      res.redirect('/');
+    });
   } catch (error) {
     console.error('토큰 교환 실패:', error);
     res.status(500).json({ error: '인증에 실패했습니다.' });
@@ -32,6 +43,12 @@ router.get('/callback', async (req, res) => {
 });
 
 router.get('/status', (req, res) => {
+  console.log('세션 상태 확인:', {
+    sessionExists: !!req.session,
+    tokens: !!req.session?.tokens,
+    authenticated: !!req.session?.authenticated
+  });
+  
   res.json({
     authenticated: !!req.session.tokens,
     hasServiceAccount: !!process.env.GOOGLE_APPLICATION_CREDENTIALS,

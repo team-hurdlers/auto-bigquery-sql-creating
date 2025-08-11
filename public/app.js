@@ -18,30 +18,57 @@ class BigQuerySQLGenerator {
         this.attachEventListeners();
     }
 
+    addEventListenerSafely(elementId, event, handler) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.addEventListener(event, handler);
+        }
+    }
+
     attachEventListeners() {
+        console.log('attachEventListeners 호출됨');
+        
         // 로그인 버튼
         const loginBtn = document.getElementById('login-btn');
+        console.log('로그인 버튼 찾기:', loginBtn);
+        
         if (loginBtn) {
-            loginBtn.addEventListener('click', () => {
+            console.log('로그인 버튼에 이벤트 리스너 추가');
+            loginBtn.addEventListener('click', (e) => {
+                console.log('로그인 버튼 클릭됨!');
+                e.preventDefault();
                 window.location.href = '/api/auth/google';
             });
+            
+            // 추가 테스트: onclick 속성도 추가
+            loginBtn.onclick = function() {
+                console.log('onclick 속성으로 로그인 버튼 클릭됨!');
+                window.location.href = '/api/auth/google';
+            };
+        } else {
+            console.error('로그인 버튼을 찾을 수 없습니다!');
         }
 
-        document.getElementById('load-taxonomy').addEventListener('click', () => this.loadTaxonomy());
-        document.getElementById('dataset-select').addEventListener('change', (e) => this.onDatasetSelect(e));
-        document.getElementById('generate-sql').addEventListener('click', () => this.generateSQL());
-        document.getElementById('validate-query').addEventListener('click', () => this.validateQuery());
-        document.getElementById('execute-query').addEventListener('click', () => this.executeQuery());
-        document.getElementById('save-as-view').addEventListener('click', () => this.saveAsView());
-        document.getElementById('export-csv').addEventListener('click', () => this.exportResults('csv'));
-        document.getElementById('next-step').addEventListener('click', () => this.nextStep());
-        document.getElementById('prev-step').addEventListener('click', () => this.prevStep());
+        // 나머지 요소들은 존재하는 경우에만 이벤트 리스너 추가
+        const loadTaxonomyBtn = document.getElementById('load-taxonomy');
+        if (loadTaxonomyBtn) {
+            loadTaxonomyBtn.addEventListener('click', () => this.loadTaxonomy());
+        }
+        // 안전하게 이벤트 리스너 추가
+        this.addEventListenerSafely('dataset-select', 'change', (e) => this.onDatasetSelect(e));
+        this.addEventListenerSafely('generate-sql', 'click', () => this.generateSQL());
+        this.addEventListenerSafely('validate-query', 'click', () => this.validateQuery());
+        this.addEventListenerSafely('execute-query', 'click', () => this.executeQuery());
+        this.addEventListenerSafely('save-as-view', 'click', () => this.saveAsView());
+        this.addEventListenerSafely('export-csv', 'click', () => this.exportResults('csv'));
+        this.addEventListenerSafely('next-step', 'click', () => this.nextStep());
+        this.addEventListenerSafely('prev-step', 'click', () => this.prevStep());
         
         // 프로젝트 검색
-        document.getElementById('project-search').addEventListener('input', (e) => this.searchProjects(e.target.value));
+        this.addEventListenerSafely('project-search', 'input', (e) => this.searchProjects(e.target.value));
         
         // 조직 필터
-        document.getElementById('organization-filter').addEventListener('change', (e) => this.filterByOrganization(e.target.value));
+        this.addEventListenerSafely('organization-filter', 'change', (e) => this.filterByOrganization(e.target.value));
         
         // 필터 칩
         document.querySelectorAll('.filter-chips .chip').forEach(chip => {
@@ -76,8 +103,14 @@ class BigQuerySQLGenerator {
                 this.isAuthenticated = true;
                 authStatus.innerHTML = `
                     <span style="margin-right: 16px;">✓ 인증됨</span>
-                    <button class="logout-btn" onclick="logout()">로그아웃</button>
+                    <button class="logout-btn" id="logout-btn">로그아웃</button>
                 `;
+                
+                // 로그아웃 버튼에 이벤트 리스너 추가
+                const logoutBtn = document.getElementById('logout-btn');
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', () => this.logout());
+                }
                 
                 // 로그인 화면 숨기고 메인 컨텐츠 표시
                 loginScreen.classList.add('hidden');
@@ -801,20 +834,27 @@ class BigQuerySQLGenerator {
             toast.classList.add('hidden');
         }, 5000);
     }
-}
 
-// 전역 로그아웃 함수
-async function logout() {
-    try {
-        const response = await fetch('/api/auth/logout', { method: 'POST' });
-        if (response.ok) {
-            window.location.reload();
+    async logout() {
+        try {
+            const response = await fetch('/api/auth/logout', { method: 'POST' });
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                console.error('로그아웃 실패:', response.status);
+                this.showMessage('로그아웃 실패', 'error');
+            }
+        } catch (error) {
+            console.error('로그아웃 실패:', error);
+            this.showMessage('로그아웃 실패: ' + error.message, 'error');
         }
-    } catch (error) {
-        console.error('로그아웃 실패:', error);
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    new BigQuerySQLGenerator();
+    console.log('DOMContentLoaded 이벤트 발생');
+    console.log('로그인 버튼 존재 확인:', document.getElementById('login-btn'));
+    
+    const app = new BigQuerySQLGenerator();
+    console.log('BigQuerySQLGenerator 인스턴스 생성:', app);
 });
