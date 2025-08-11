@@ -1,0 +1,36 @@
+{
+  "name": "bigquery-sql-generator",
+  "version": "1.0.0",
+  "description": "이벤트 택소노미 기반 BigQuery SQL 자동 생성 도구",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "build": "echo 'Build completed'",
+    "vercel-build": "echo 'Vercel build completed'"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "dotenv": "^16.3.1",
+    "googleapis": "^126.0.1",
+    "@google-cloud/bigquery": "^7.3.0",
+    "express-session": "^1.17.3",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "handlebars": "^4.7.8",
+    "morgan": "^1.10.0",
+    "axios": "^1.6.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "keywords": [
+    "bigquery",
+    "ga4",
+    "sql",
+    "google-sheets",
+    "analytics"
+  ],
+  "author": "",
+  "license": "MIT"
+}

@@ -12,9 +12,10 @@ yarn-error.log*
 .env.production.local
 
 # Service Account Keys
-*.json
 service-account-key.json
 credentials.json
+*-service-account.json
+google-credentials.json
 
 # IDE
 .vscode/
