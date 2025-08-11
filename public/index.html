@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BigQuery SQL Generator - GA4 이벤트 택소노미 기반 SQL 자동 생성</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>BigQuery SQL Generator</h1>
+            <p class="subtitle">GA4 이벤트 택소노미 기반 SQL 자동 생성 도구</p>
+            <div id="auth-status" class="auth-status"></div>
+        </header>
+
+        <!-- 로그인 화면 -->
+        <div id="login-screen" class="login-screen hidden">
+            <div class="login-content">
+                <h2>시작하기</h2>
+                <p>BigQuery SQL Generator를 사용하려면 Google 계정으로 로그인하세요.</p>
+                <button id="login-btn" class="btn btn-primary btn-large">
+                    <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" style="margin-right: 8px;">
+                        <g fill="none" fill-rule="evenodd">
+                            <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+                            <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+                            <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+                            <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+                        </g>
+                    </svg>
+                    Google 계정으로 로그인
+                </button>
+            </div>
+        </div>
+
+        <!-- 메인 컨텐츠 -->
+        <main id="main-content" class="hidden">
+            <div class="workflow-steps">
+                <div class="step active" data-step="1">
+                    <span class="step-number">1</span>
+                    <span class="step-title">프로젝트 선택</span>
+                </div>
+                <div class="step" data-step="2">
+                    <span class="step-number">2</span>
+                    <span class="step-title">택소노미 로드</span>
+                </div>
+                <div class="step" data-step="3">
+                    <span class="step-number">3</span>
+                    <span class="step-title">SQL 생성</span>
+                </div>
+                <div class="step" data-step="4">
+                    <span class="step-number">4</span>
+                    <span class="step-title">데이터셋 선택</span>
+                </div>
+                <div class="step" data-step="5">
+                    <span class="step-number">5</span>
+                    <span class="step-title">실행 및 저장</span>
+                </div>
+            </div>
+
+            <section id="step-1" class="step-content active">
+                <h2>1. BigQuery 프로젝트 선택</h2>
+                
+                <div class="project-selector">
+                    <div class="selector-header">
+                        <input type="text" 
+                               id="project-search" 
+                               placeholder="프로젝트 검색..." 
+                               class="form-control">
+                        <select id="organization-filter" class="form-control" style="width: 200px;">
+                            <option value="">모든 조직</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-chips">
+                        <span class="chip active" data-filter="all">전체</span>
+                        <span class="chip" data-filter="recent">최근 사용</span>
+                        <span class="chip" data-filter="starred">즐겨찾기</span>
+                    </div>
+                    
+                    <div class="project-list" id="project-list">
+                        <!-- 프로젝트 목록이 여기에 동적으로 로드됩니다 -->
+                    </div>
+                </div>
+            </section>
+
+            <section id="step-2" class="step-content">
+                <h2>2. 이벤트 택소노미 로드</h2>
+                <div class="form-group">
+                    <label for="sheets-url">Google Sheets URL</label>
+                    <div class="input-with-button">
+                        <input type="text" 
+                               id="sheets-url" 
+                               placeholder="https://docs.google.com/spreadsheets/d/..." 
+                               class="form-control">
+                        <button id="load-taxonomy" class="btn btn-primary">택소노미 로드</button>
+                    </div>
+                </div>
+                <div id="taxonomy-preview" class="preview-box hidden">
+                    <h3>택소노미 정보</h3>
+                    <div id="taxonomy-info"></div>
+                </div>
+            </section>
+
+            <section id="step-3" class="step-content">
+                <h2>3. SQL 템플릿 선택 및 생성</h2>
+                <div class="template-selector">
+                    <h3>분석 유형 선택</h3>
+                    <div class="template-grid">
+                        <div class="template-card" data-template="eventOverview">
+                            <h4>이벤트 발생 현황</h4>
+                            <p>전체 이벤트 현황 분석</p>
+                        </div>
+                        <div class="template-card" data-template="eventParameters">
+                            <h4>파라미터 분석</h4>
+                            <p>이벤트 파라미터 상세 분석</p>
+                        </div>
+                        <div class="template-card" data-template="ecommerceFunnel">
+                            <h4>전자상거래 퍼널</h4>
+                            <p>구매 전환 퍼널 분석</p>
+                        </div>
+                        <div class="template-card" data-template="userEngagement">
+                            <h4>사용자 참여도</h4>
+                            <p>사용자 행동 패턴 분석</p>
+                        </div>
+                        <div class="template-card" data-template="dailyTrends">
+                            <h4>일별 트렌드</h4>
+                            <p>시계열 트렌드 분석</p>
+                        </div>
+                        <div class="template-card" data-template="customEventAnalysis">
+                            <h4>커스텀 이벤트</h4>
+                            <p>커스텀 이벤트 상세 분석</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="parameter-form" class="parameter-form hidden">
+                    <h3>파라미터 설정</h3>
+                    <div id="parameter-inputs"></div>
+                    <button id="generate-sql" class="btn btn-primary">SQL 생성</button>
+                </div>
+
+                <div id="sql-preview" class="sql-preview hidden">
+                    <h3>생성된 SQL</h3>
+                    <pre><code id="generated-sql" class="language-sql"></code></pre>
+                    <div class="cost-estimate">
+                        <span id="cost-info"></span>
+                    </div>
+                </div>
+            </section>
+
+            <section id="step-4" class="step-content">
+                <h2>4. 데이터셋 선택</h2>
+                <div class="form-group">
+                    <label for="dataset-select">데이터셋</label>
+                    <select id="dataset-select" class="form-control">
+                        <option value="">데이터셋을 선택하세요</option>
+                    </select>
+                </div>
+                
+                <div id="ga4-detection" class="alert hidden"></div>
+
+                <div class="info-box">
+                    <p>선택한 프로젝트: <strong id="selected-project-display"></strong></p>
+                    <p>생성된 SQL을 실행할 데이터셋을 선택하세요.</p>
+                </div>
+            </section>
+
+            <section id="step-5" class="step-content">
+                <h2>5. 쿼리 실행 및 저장</h2>
+                <div class="action-buttons">
+                    <button id="validate-query" class="btn btn-secondary">쿼리 검증</button>
+                    <button id="execute-query" class="btn btn-primary">쿼리 실행</button>
+                    <button id="save-as-view" class="btn btn-success">뷰로 저장</button>
+                    <button id="export-csv" class="btn btn-info">CSV 내보내기</button>
+                </div>
+
+                <div id="query-results" class="query-results hidden">
+                    <h3>쿼리 결과</h3>
+                    <div id="results-info"></div>
+                    <div id="results-table-container">
+                        <table id="results-table" class="data-table">
+                            <thead></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer id="footer" class="hidden">
+            <button id="prev-step" class="btn btn-secondary" disabled>이전</button>
+            <button id="next-step" class="btn btn-primary">다음</button>
+        </footer>
+    </div>
+
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <p>처리 중...</p>
+    </div>
+
+    <div id="message-toast" class="message-toast hidden"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
